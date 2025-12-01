@@ -1,4 +1,4 @@
-# 🏠 HOMELY pG 🌟  
+# 🏠 HOMELY PG 🌟  
 _A one-stop solution for students to find and secure PG accommodations with ease._  
 
 ---
