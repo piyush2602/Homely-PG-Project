@@ -1,11 +1,11 @@
-# 🏠 THE PG LIFE 🌟  
+# 🏠 HOMELY pG 🌟  
 _A one-stop solution for students to find and secure PG accommodations with ease._  
 
 ---
 
 ## 🌐 Project Overview  
 
-**THE PG LIFE** is a user-friendly web application designed to simplify the process of finding PG (Paying Guest) accommodations. It offers:  
+**HOMELY PG** is a user-friendly web application designed to simplify the process of finding PG (Paying Guest) accommodations. It offers:  
 - 🌆 **City-based Listings**: Discover PGs in your preferred cities.  
 - 🏠 **Amenity Filters**: Search for PGs with features like Wi-Fi, meals, and parking.  
 - 🔒 **Secure Access**: User authentication ensures your account and bookings remain safe.  
@@ -35,15 +35,6 @@ _A one-stop solution for students to find and secure PG accommodations with ease
 
 ---
 🌐 Live Demo
-Check it out live here: THE PG LIFE -> http://pglifelive.infinityfreeapp.com/
+Check it out live here: THE PG LIFE -> http://homely-pg.gamer.gd/
 
 💡 Feel free to explore, contribute, or share your feedback! 😊
-
-## 🚀 Installation and Setup  
-
-Follow these simple steps to get started:  
-
-**Clone the Repository**  
-   ```bash
-   git clone https://github.com/username/the-pg-life.git
-  
