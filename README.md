@@ -38,3 +38,11 @@ _A one-stop solution for students to find and secure PG accommodations with ease
 Check it out live here: THE PG LIFE -> http://homely-pg.gamer.gd/
 
 💡 Feel free to explore, contribute, or share your feedback! 😊
+
+## 🚀 Installation and Setup  
+
+Follow these simple steps to get started:  
+
+**Clone the Repository**  
+   ```bash
+   git https://github.com/piyush2602/Homely-PG-Project.git
