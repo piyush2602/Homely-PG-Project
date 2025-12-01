@@ -1,7 +1,6 @@
 <?php
 session_start();
 require "includes/database_connect.php";
-
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 $property_id = $_GET["property_id"];
 
@@ -192,9 +191,17 @@ $interested_users_count = mysqli_num_rows($result_4);
                 <div class="rent">₹ <?= number_format($property['rent']) ?>/-</div>
                 <div class="rent-unit">per month</div>
             </div>
+            <?php
+            $property_id = $property['id'];  // your real property ID
+            $amount = $property['rent'];     // or any amount you want
+            ?>
             <div class="button-container col-6">
-                <a href="#" class="btn btn-primary">Book Now</a>
+                <a href="payment.php?property_id=<?php echo $property_id; ?>&amount=<?php echo urlencode($amount); ?>"
+                    class="btn btn-primary">
+                    Book Now
+                </a>
             </div>
+
         </div>
     </div>
 

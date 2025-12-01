@@ -16,12 +16,14 @@
         </div>
         <div class="footer-copyright">
             <br>
-            © 2024 Copyright PG Life
+            © 2024 Copyright Homely PG
             <br>
             Made by:
-        © <a href="https://www.linkedin.com/in/kanhaiya-mittal-632423251/">Kanhaiya Mittal</a>
+        © <a href="https://www.linkedin.com/in/piyush-agrawal-b01249203/">Piyush Agrawal</a>
         <br>
         <a href="https://www.ietlucknow.ac.in/">IET LUCKNOW</a>
+        <br>
+        <a href="about.php">About</a>
         <br>
         <a href="index.php">
             Home
