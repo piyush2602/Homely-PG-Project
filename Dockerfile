@@ -1,12 +1,10 @@
 FROM php:8.2-apache
 
-# Install system dependencies & PHP MongoDB extension
-RUN apt-get update && apt-get install -y \
-    libssl-dev \
-    unzip \
-    git \
-    && pecl install mongodb \
-    && docker-php-ext-enable mongodb
+# Install mlocati php extension installer for ultra-fast binary extension install
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/install-php-extensions && \
+    install-php-extensions mongodb
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
