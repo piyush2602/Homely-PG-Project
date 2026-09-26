@@ -26,8 +26,8 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . /var/www/html/
 
-# Install PHP dependencies via Composer
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
+# Update PHP dependencies via Composer matching PHP 8.2 & MongoDB driver
+RUN composer update --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
 
 # Create upload directories and set permissions
 RUN mkdir -p /var/www/html/uploads/id_cards /var/www/html/uploads/profile \
