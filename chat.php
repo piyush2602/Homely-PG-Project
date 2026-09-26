@@ -1,70 +1,39 @@
 <?php
-$dbHost = 'localhost';
-$dbUser = 'root';
-$dbPass = '';
-$dbName = 'pglife';
+session_start();
+require_once __DIR__ . '/includes/mongodb_connect.php';
 
-$uploadDir = __DIR__ . '/uploads'; // directory to store uploaded files
-$uploadWebPath = 'uploads';        // path used in HTML <img src="...">
-//////////////////////
+// Auth Guard: Require user login to access chat
+if (empty($_SESSION['user_id'])) {
+    if (!empty($_POST['action'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Please log in to use chat support.']);
+        exit();
+    } else {
+        header("Location: index.php");
+        exit();
+    }
+}
 
-// create upload dir if missing
+$user_id = (int)$_SESSION['user_id'];
+$uploadDir = __DIR__ . '/uploads';
+$uploadWebPath = 'uploads';
+
 if (!is_dir($uploadDir)) {
   @mkdir($uploadDir, 0755, true);
 }
 
-// connect to DB
-$mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
-if ($mysqli->connect_errno) {
-  header('Content-Type: application/json');
-  echo json_encode(['error' => 'DB connection failed: ' . $mysqli->connect_error]);
-  exit;
-}
-$mysqli->set_charset('utf8mb4');
-
-// helper: save message row
-function save_message_db($mysqli, $sender, $text = null, $image_path = null)
+// helper: save message document with user_id & is_seen flag
+function save_message_db($db, $user_id, $sender, $text = null, $image_path = null)
 {
-  $sql = "INSERT INTO messages (`sender`,`text`,`image_path`) VALUES (?,?,?)";
-  $stmt = $mysqli->prepare($sql);
-  $stmt->bind_param('sss', $sender, $text, $image_path);
-  $ok = $stmt->execute();
-  $id = $mysqli->insert_id;
-  $stmt->close();
-  return $ok ? $id : false;
-}
-
-// helper: get bot reply from bot_responses table by keyword
-function get_bot_reply($mysqli, $user_text)
-{
-  $text = strtolower(trim($user_text ?? ''));
-
-  // exact keyword match
-  $sql = "SELECT reply FROM bot_responses WHERE keyword = ? LIMIT 1";
-  $stmt = $mysqli->prepare($sql);
-  $stmt->bind_param('s', $text);
-  $stmt->execute();
-  $stmt->bind_result($reply);
-  if ($stmt->fetch()) {
-    $stmt->close();
-    return $reply;
-  }
-  $stmt->close();
-
-  // optional: fallback: try partial match (first matching row)
-  $sql = "SELECT reply FROM bot_responses WHERE ? LIKE CONCAT('%', keyword, '%') LIMIT 1";
-  $stmt = $mysqli->prepare($sql);
-  $stmt->bind_param('s', $text);
-  $stmt->execute();
-  $stmt->bind_result($reply2);
-  if ($stmt->fetch()) {
-    $stmt->close();
-    return $reply2;
-  }
-  $stmt->close();
-
-  // default fallback
-  return "Replying soon...";
+  $insertResult = $db->messages->insertOne([
+    'user_id'    => (int)$user_id,
+    'sender'     => $sender,
+    'text'       => $text,
+    'image_path' => $image_path,
+    'is_seen'    => false,
+    'created_at' => date('Y-m-d H:i:s')
+  ]);
+  return (string)$insertResult->getInsertedId();
 }
 
 // allowed image types & size
@@ -96,7 +65,6 @@ if ($action === 'send_message') {
       echo json_encode(['status' => 'error', 'message' => 'Invalid file type']);
       exit;
     }
-    // safe unique filename
     $ext = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'bin';
     $base = bin2hex(random_bytes(8));
     $fname = $base . '.' . $ext;
@@ -109,33 +77,36 @@ if ($action === 'send_message') {
     $saved_image_path = $uploadWebPath . '/' . $fname;
   }
 
-  // save user message
-  save_message_db($mysqli, 'user', $text ?: null, $saved_image_path);
-
-  // fetch bot reply from DB
-  $reply = get_bot_reply($mysqli, $text);
-  // save bot reply
-  save_message_db($mysqli, 'bot', $reply, null);
+  // save user message (NO automatic bot reply)
+  save_message_db($db, $user_id, 'user', $text ?: null, $saved_image_path);
 
   header('Content-Type: application/json');
   echo json_encode(['status' => 'ok']);
   exit;
 } elseif ($action === 'fetch_messages') {
-  $rows = [];
-  $res = $mysqli->query("SELECT id, sender, text, image_path, created_at FROM messages ORDER BY id ASC");
-  while ($r = $res->fetch_assoc()) {
-    $rows[] = $r;
-  }
+  // Mark all admin messages for this user as seen
+  $db->messages->updateMany(
+    ['user_id' => $user_id, 'sender' => 'admin', 'is_seen' => false],
+    ['$set' => ['is_seen' => true]]
+  );
+
+  // Fetch ONLY messages belonging to this logged-in user
+  $rows = $db->messages->find(['user_id' => $user_id], ['sort' => ['_id' => 1]])->toArray();
+
+  $messages = array_map(function($r) {
+    return [
+      'id'         => (string)$r['_id'],
+      'sender'     => $r['sender'] ?? '',
+      'text'       => $r['text'] ?? null,
+      'image_path' => $r['image_path'] ?? null,
+      'created_at' => $r['created_at'] ?? ''
+    ];
+  }, $rows);
   header('Content-Type: application/json');
-  echo json_encode(['messages' => $rows]);
+  echo json_encode(['messages' => $messages]);
   exit;
 } elseif ($action === 'clear_messages') {
-  $mysqli->query("TRUNCATE TABLE messages");
-  // remove uploaded files
-  $files = glob($uploadDir . '/*');
-  foreach ($files as $f) {
-    if (is_file($f)) @unlink($f);
-  }
+  $db->messages->deleteMany(['user_id' => $user_id]);
   header('Content-Type: application/json');
   echo json_encode(['status' => 'cleared']);
   exit;
@@ -247,8 +218,12 @@ if ($action === 'send_message') {
       flex: 1;
       padding: 12px;
       overflow: auto;
-      background: linear-gradient(180deg, #eaf7f5 0%, rgba(255, 255, 255, 0)100%)
+      background-color: #efeae2;
+      background-image: url('img/chat_bg.svg');
+      background-repeat: repeat;
+      background-size: 320px 320px;
     }
+
 
     .msg {
       max-width: 76%;

@@ -22,27 +22,24 @@ if (!empty($errors)) {
     exit;
 }
 
-require_once __DIR__ . '/includes/db_config.php';
+require_once __DIR__ . '/includes/mongodb_connect.php';
 $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
 
-$stmt = $mysqli->prepare("INSERT INTO contacts (name, email, message, ip_address) VALUES (?, ?, ?, ?)");
-if (!$stmt) {
-    error_log("Prepare failed: " . $mysqli->error);
-    $_SESSION['contact_errors'] = ["Server error."];
-    header('Location: contact.php');
-    exit;
-}
-$stmt->bind_param('ssss', $name, $email, $message, $ip_address);
-if ($stmt->execute()) {
+try {
+    $db->contacts->insertOne([
+        'name'       => $name,
+        'email'      => $email,
+        'message'    => $message,
+        'ip_address' => $ip_address,
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
     $_SESSION['contact_success'] = "Thanks — your message was sent.";
     unset($_SESSION['contact_old']);
-} else {
-    error_log("Execute failed: " . $stmt->error);
+} catch (\Exception $e) {
+    error_log("Insert failed: " . $e->getMessage());
     $_SESSION['contact_errors'] = ["Server error."];
     $_SESSION['contact_old'] = ['name' => $name, 'email' => $email, 'message' => $message];
 }
-$stmt->close();
-$mysqli->close();
 
 header('Location: contact.php');
 exit;

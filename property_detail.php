@@ -1,55 +1,30 @@
 <?php
 session_start();
-require "includes/database_connect.php";
-$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
-$property_id = $_GET["property_id"];
+require "includes/mongodb_connect.php";
+$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : NULL;
+$property_id = isset($_GET["property_id"]) ? (int)$_GET["property_id"] : 0;
 
-$sql_1 = "SELECT *, p.id AS property_id, p.name AS property_name, c.name AS city_name 
-            FROM properties p
-            INNER JOIN cities c ON p.city_id = c.id 
-            WHERE p.id = $property_id";
-$result_1 = mysqli_query($conn, $sql_1);
-if (!$result_1) {
-    echo "Something went wrong!";
-    return;
-}
-$property = mysqli_fetch_assoc($result_1);
+$property = $db->properties->findOne(['id' => $property_id]);
 if (!$property) {
     echo "Something went wrong!";
     return;
 }
 
+$city = $db->cities->findOne(['id' => $property['city_id']]);
+$property['property_id'] = $property['id'];
+$property['property_name'] = $property['name'];
+$property['city_name'] = $city ? $city['name'] : '';
 
-$sql_2 = "SELECT * FROM testimonials WHERE property_id = $property_id";
-$result_2 = mysqli_query($conn, $sql_2);
-if (!$result_2) {
-    echo "Something went wrong!";
-    return;
-}
-$testimonials = mysqli_fetch_all($result_2, MYSQLI_ASSOC);
+$testimonials = $db->testimonials->find(['property_id' => $property_id])->toArray();
 
+$pa_docs = $db->properties_amenities->find(['property_id' => $property_id])->toArray();
+$amenity_ids = array_map(fn($pa) => (int)$pa['amenity_id'], (array)$pa_docs);
+$amenities = !empty($amenity_ids) ? $db->amenities->find(['id' => ['$in' => $amenity_ids]])->toArray() : [];
 
-$sql_3 = "SELECT a.* 
-            FROM amenities a
-            INNER JOIN properties_amenities pa ON a.id = pa.amenity_id
-            WHERE pa.property_id = $property_id";
-$result_3 = mysqli_query($conn, $sql_3);
-if (!$result_3) {
-    echo "Something went wrong!";
-    return;
-}
-$amenities = mysqli_fetch_all($result_3, MYSQLI_ASSOC);
-
-
-$sql_4 = "SELECT * FROM interested_users_properties WHERE property_id = $property_id";
-$result_4 = mysqli_query($conn, $sql_4);
-if (!$result_4) {
-    echo "Something went wrong!";
-    return;
-}
-$interested_users = mysqli_fetch_all($result_4, MYSQLI_ASSOC);
-$interested_users_count = mysqli_num_rows($result_4);
+$interested_users = $db->interested_users_properties->find(['property_id' => $property_id])->toArray();
+$interested_users_count = count($interested_users);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

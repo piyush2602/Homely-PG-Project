@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#efeae2"/>
+  <style>
+    .icon { fill: none; stroke: #d5caa3; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+  </style>
+  
+  <!-- Speech Bubble -->
+  <path class="icon" d="M30 40 h50 a10 10 0 0 1 10 10 v30 a10 10 0 0 1 -10 10 h-30 l-15 12 v-12 h-5 a10 10 0 0 1 -10 -10 v-30 a10 10 0 0 1 10 -10 z"/>
+  <circle cx="50" cy="65" r="2" fill="#d5caa3" opacity="0.55"/>
+  <circle cx="60" cy="65" r="2" fill="#d5caa3" opacity="0.55"/>
+  <circle cx="70" cy="65" r="2" fill="#d5caa3" opacity="0.55"/>
+
+  <!-- Coffee Cup -->
+  <path class="icon" d="M150 50 h30 v25 a15 15 0 0 1 -30 0 v-25 z M180 55 h8 a5 5 0 0 1 5 5 v5 a5 5 0 0 1 -5 5 h-8 M145 85 h40"/>
+
+  <!-- Heart & Sparkles -->
+  <path class="icon" d="M270 45 c-5 -10 -20 -10 -25 0 c-5 -10 -20 -10 -25 0 c-5 15 25 35 25 35 s30 -20 25 -35 z"/>
+  <path class="icon" d="M330 35 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z"/>
+
+  <!-- Sun & Cloud -->
+  <circle cx="60" cy="180" r="12" class="icon"/>
+  <path class="icon" d="M60 160 v-5 M60 200 v5 M40 180 h-5 M80 180 h5 M46 166 l-4 -4 M74 194 l4 4 M46 194 l-4 4 M74 166 l4 -4"/>
+  <path class="icon" d="M140 180 a12 12 0 0 1 22 -6 a16 16 0 0 1 28 10 a10 10 0 0 1 0 20 h-50 a12 12 0 0 1 0 -24 z"/>
+
+  <!-- Music Notes -->
+  <path class="icon" d="M260 170 v25 a8 8 0 1 1 -5 -7.5 v-22.5 l20 -5 v25 a8 8 0 1 1 -5 -7.5 v-17.5 z"/>
+
+  <!-- Whale -->
+  <path class="icon" d="M320 180 c20 -20 50 -10 60 10 c5 10 -5 25 -25 25 h-35 c-10 0 -15 -10 -15 -15 c0 -10 5 -15 15 -20 z M370 170 c0 -5 5 -10 10 -10"/>
+
+  <!-- Location Pin -->
+  <path class="icon" d="M55 300 a15 15 0 0 1 30 0 c0 15 -15 30 -15 30 s-15 -15 -15 -30 z"/>
+  <circle cx="70" cy="300" r="5" class="icon"/>
+
+  <!-- Star -->
+  <polygon points="170,280 175,292 188,293 178,302 181,315 170,308 159,315 162,302 152,293 165,292" class="icon"/>
+
+  <!-- Laptop / Screen -->
+  <rect x="250" y="290" width="40" height="26" rx="4" class="icon"/>
+  <path class="icon" d="M240 320 h60"/>
+
+  <!-- Mobile Phone -->
+  <rect x="340" y="285" width="22" height="40" rx="4" class="icon"/>
+  <line x1="348" y1="318" x2="354" y2="318" class="icon"/>
+
+  <!-- Random Circles & Doodles -->
+  <circle cx="110" cy="90" r="4" class="icon"/>
+  <circle cx="220" cy="120" r="3" class="icon"/>
+  <circle cx="310" cy="110" r="5" class="icon"/>
+  <circle cx="100" cy="240" r="3" class="icon"/>
+  <circle cx="210" cy="240" r="4" class="icon"/>
+  <circle cx="330" cy="240" r="3" class="icon"/>
+  <circle cx="120" cy="340" r="4" class="icon"/>
+  <circle cx="210" cy="350" r="3" class="icon"/>
+</svg>

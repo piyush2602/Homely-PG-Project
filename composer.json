@@ -1,0 +1,12 @@
+{
+    "require": {
+        "mongodb/mongodb": "1.16.*"
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

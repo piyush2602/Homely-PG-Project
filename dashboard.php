@@ -1,38 +1,40 @@
 <?php
 session_start();
-require "includes/database_connect.php";
+require "includes/mongodb_connect.php";
 
 if (!isset($_SESSION["user_id"])) {
     header("location: index.php");
     die();
 }
-$user_id = (int) $_SESSION['user_id']; // cast to int for safety
+$user_id = (int) $_SESSION['user_id'];
 
 // Fetch user
-$sql_1 = "SELECT * FROM users WHERE id = $user_id";
-$result_1 = mysqli_query($conn, $sql_1);
-if (!$result_1) {
-    echo "Something went wrong!";
-    return;
-}
-$user = mysqli_fetch_assoc($result_1);
+$user = $db->users->findOne(['id' => $user_id]);
 if (!$user) {
     echo "Something went wrong!";
     return;
 }
 
 // Fetch interested properties
-$sql_2 = "SELECT iup.*, p.* 
-            FROM interested_users_properties iup
-            INNER JOIN properties p ON iup.property_id = p.id
-            WHERE iup.user_id = $user_id";
-$result_2 = mysqli_query($conn, $sql_2);
-if (!$result_2) {
-    echo "Something went wrong!";
-    return;
+$iup_docs = $db->interested_users_properties->find(['user_id' => $user_id])->toArray();
+$property_ids = array_map(fn($doc) => (int)$doc['property_id'], (array)$iup_docs);
+
+$interested_properties = [];
+if (!empty($property_ids)) {
+    $props = $db->properties->find(['id' => ['$in' => $property_ids]])->toArray();
+    $props_by_id = [];
+    foreach ($props as $p) {
+        $props_by_id[$p['id']] = (array)$p;
+    }
+    foreach ($iup_docs as $iup) {
+        $pid = (int)$iup['property_id'];
+        if (isset($props_by_id[$pid])) {
+            $interested_properties[] = array_merge((array)$iup, $props_by_id[$pid]);
+        }
+    }
 }
-$interested_properties = mysqli_fetch_all($result_2, MYSQLI_ASSOC);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -129,45 +131,144 @@ $interested_properties = mysqli_fetch_all($result_2, MYSQLI_ASSOC);
         </ol>
     </nav>
 
-    <div class="my-profile page-container">
-        <h1>My Profile</h1>
-        <div class="row">
-            <div class="col-md-3 profile-img-container text-center">
-                <?php if (!empty($user['profile_image']) && file_exists($user['profile_image'])) { ?>
-                    <img src="<?= htmlspecialchars($user['profile_image']) ?>" class="profile-img" alt="Profile Image">
-                <?php } else { ?>
-                    <i class="fas fa-user profile-placeholder" aria-hidden="true"></i>
-                <?php } ?>
-
-                <?php
-                // Show upload error if present
-                if (!empty($_SESSION['error'])) { ?>
-                    <div class="upload-error" id="server-upload-error">
-                        <?= htmlspecialchars($_SESSION['error']) ?>
-                    </div>
-                <?php
-                    unset($_SESSION['error']);
-                }
-                ?>
-
-                <form id="profileUploadForm" action="upload_profile.php" method="POST" enctype="multipart/form-data" class="mt-2">
-                    <input id="profileImageInput" type="file" name="profile_image" accept="image/*" required class="form-control form-control-sm mb-1">
-                    <div id="clientImageWarning" class="image-warning" style="display:none;"></div>
-                    <button id="uploadBtn" type="submit" class="btn btn-primary btn-sm">Upload</button>
-                </form>
-
-                <small class="text-muted d-block mt-2">Minimum size: 563×688 px</small>
+    <div class="profile-section-container">
+        <div class="profile-card-wrapper">
+            <div class="profile-card-header">
+                <h2>
+                    <div class="header-icon"><i class="fas fa-id-card"></i></div>
+                    My Profile
+                </h2>
+                <?php $is_verified = !empty($user['is_verified']); ?>
+                <?php if ($is_verified): ?>
+                    <span class="profile-verified-badge badge-verified">
+                        <i class="fas fa-check-circle"></i> Verified Account
+                    </span>
+                <?php else: ?>
+                    <span class="profile-verified-badge badge-unverified">
+                        <i class="fas fa-times-circle"></i> Unverified Account
+                    </span>
+                <?php endif; ?>
             </div>
 
-            <div class="col-md-9">
-                <div class="row no-gutters justify-content-between align-items-end">
-                    <div class="profile">
-                        <div class="name"><?= htmlspecialchars($user['full_name']) ?></div>
-                        <div class="email"><?= htmlspecialchars($user['email']) ?></div>
-                        <div class="phone"><?= htmlspecialchars($user['phone']) ?></div>
-                        <div class="college"><?= htmlspecialchars($user['college_name']) ?></div>
+            <div class="row align-items-center">
+                <!-- Profile Avatar & Upload -->
+                <div class="col-md-4 col-lg-3 profile-avatar-box mb-4 mb-md-0">
+                    <div class="profile-avatar-ring">
+                        <?php if (!empty($user['profile_image']) && file_exists($user['profile_image'])) { ?>
+                            <img src="<?= htmlspecialchars($user['profile_image']) ?>" alt="Profile Image">
+                        <?php } else { ?>
+                            <div class="profile-avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        <?php } ?>
                     </div>
-                    <a href="chat.php" class="chat-btn">Chat With Us</a>
+
+                    <?php if (!empty($_SESSION['error'])) { ?>
+                        <div class="upload-error mb-2" id="server-upload-error">
+                            <?= htmlspecialchars($_SESSION['error']) ?>
+                        </div>
+                    <?php unset($_SESSION['error']); } ?>
+
+                    <form id="profileUploadForm" action="upload_profile.php" method="POST" enctype="multipart/form-data" class="text-center w-100">
+                        <label for="profileImageInput" class="btn-choose-photo mb-2">
+                            <i class="fas fa-camera"></i> Change Photo
+                        </label>
+                        <input id="profileImageInput" type="file" name="profile_image" accept="image/*" required style="display: none;">
+                        <div id="fileNameDisplay" class="small text-truncate text-muted mb-2 font-weight-bold" style="max-width: 200px; display: none; margin: 0 auto;"></div>
+                        <div id="clientImageWarning" class="image-warning small mb-2" style="display:none;"></div>
+                        <div>
+                            <button id="uploadBtn" type="submit" class="btn-emerald-upload">
+                                <i class="fas fa-upload mr-1"></i> Upload Image
+                            </button>
+                        </div>
+                    </form>
+
+                    <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">Min dimensions: 563×688 px</small>
+                </div>
+
+                <!-- User Information Grid -->
+                <div class="col-md-8 col-lg-9">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+                        <div>
+                            <h1 class="profile-user-name mb-1"><?= htmlspecialchars($user['full_name']) ?></h1>
+                            <span class="text-muted small font-weight-bold"><i class="fas fa-user-graduate text-success mr-1"></i> Registered Homely PG Resident</span>
+                        </div>
+                        <a href="#" onclick="toggleChatWidget(); return false;" class="btn-emerald-chat mt-3 mt-md-0">
+                            <i class="fas fa-comments"></i> Chat With Us
+                        </a>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="info-item-row">
+                                <div class="info-icon-badge"><i class="fas fa-envelope"></i></div>
+                                <div>
+                                    <div class="info-label">Email Address</div>
+                                    <div class="info-val text-truncate" style="max-width: 170px;" title="<?= htmlspecialchars($user['email']) ?>"><?= htmlspecialchars($user['email']) ?></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="info-item-row">
+                                <div class="info-icon-badge"><i class="fas fa-phone-alt"></i></div>
+                                <div>
+                                    <div class="info-label">Phone Number</div>
+                                    <div class="info-val"><?= htmlspecialchars($user['phone']) ?></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="info-item-row">
+                                <div class="info-icon-badge"><i class="fas fa-graduation-cap"></i></div>
+                                <div>
+                                    <div class="info-label">College / Institute</div>
+                                    <div class="info-val"><?= htmlspecialchars($user['college_name'] ?? 'N/A') ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identity Document Upload & Verification Status Row -->
+                    <div class="mt-3 pt-3 border-top" style="border-color: #ecfdf5 !important;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-1"><i class="fas fa-id-card text-success mr-2"></i> Identity Card Document</h6>
+                                <p class="small text-muted mb-2">Upload your Aadhar Card, Student ID, or Passport for admin account verification.</p>
+                            </div>
+                            
+                            <?php if (!empty($user['id_card_path']) && file_exists($user['id_card_path'])): ?>
+                                <div class="d-flex align-items-center mb-2 mb-md-0">
+                                    <a href="<?= htmlspecialchars($user['id_card_path']) ?>" target="_blank" download class="btn btn-sm btn-outline-success font-weight-bold mr-2" style="border-radius: 8px;">
+                                        <i class="fas fa-download mr-1"></i> View / Download ID
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-light border text-muted" onclick="$('#idCardUploadBox').toggle();" style="border-radius: 8px;">
+                                        <i class="fas fa-sync-alt mr-1"></i> Replace
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if (!empty($_SESSION['id_error'])): ?>
+                            <div class="alert alert-danger small p-2 rounded mb-2"><i class="fas fa-exclamation-circle mr-1"></i><?= htmlspecialchars($_SESSION['id_error']) ?></div>
+                        <?php unset($_SESSION['id_error']); endif; ?>
+
+                        <?php if (!empty($_SESSION['id_success'])): ?>
+                            <div class="alert alert-success small p-2 rounded mb-2"><i class="fas fa-check-circle mr-1"></i><?= htmlspecialchars($_SESSION['id_success']) ?></div>
+                        <?php unset($_SESSION['id_success']); endif; ?>
+
+                        <form id="idCardUploadBox" action="upload_id_card.php" method="POST" enctype="multipart/form-data" class="mt-2 <?= (!empty($user['id_card_path']) && file_exists($user['id_card_path'])) ? 'style="display:none;"' : '' ?>">
+                            <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                <input type="file" name="id_card" accept="image/*,.pdf" class="form-control-file p-2 rounded border bg-light small" style="max-width: 320px;" required />
+                                <button type="submit" class="btn-emerald-upload">
+                                    <i class="fas fa-file-upload mr-1"></i> Upload ID Card
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Accepted formats: JPG, PNG, WEBP, PDF (Max 5MB).</small>
+                        </form>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -248,6 +349,7 @@ $interested_properties = mysqli_fetch_all($result_2, MYSQLI_ASSOC);
             </div>
         </div>
     <?php } ?>
+    <?php include "includes/chat_widget.php"; ?>
     <?php include "includes/footer.php"; ?>
     <script type="text/javascript" src="js/dashboard.js"></script>
     <script>
@@ -267,7 +369,16 @@ $interested_properties = mysqli_fetch_all($result_2, MYSQLI_ASSOC);
                 uploadBtn.disabled = false;
 
                 const file = this.files[0];
-                if (!file) return;
+                const nameDisplay = document.getElementById('fileNameDisplay');
+                if (file) {
+                    if (nameDisplay) {
+                        nameDisplay.textContent = 'Selected: ' + file.name;
+                        nameDisplay.style.display = 'block';
+                    }
+                } else {
+                    if (nameDisplay) nameDisplay.style.display = 'none';
+                    return;
+                }
 
                 // quick type check
                 if (!file.type.startsWith('image/')) {

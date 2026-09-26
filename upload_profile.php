@@ -1,13 +1,13 @@
 <?php
 session_start();
-require "includes/database_connect.php";
+require "includes/mongodb_connect.php";
 
 if (!isset($_SESSION["user_id"])) {
     header("location: index.php");
     die();
 }
 
-$user_id = $_SESSION["user_id"];
+$user_id = (int)$_SESSION["user_id"];
 
 if (!empty($_FILES['profile_image']['name'])) {
 
@@ -38,10 +38,10 @@ if (!empty($_FILES['profile_image']['name'])) {
     $target_file = $target_dir . $file_name;
 
     if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $target_file)) {
-        $sql = "UPDATE users SET profile_image='$target_file' WHERE id='$user_id'";
-        mysqli_query($conn, $sql);
+        $db->users->updateOne(['id' => $user_id], ['$set' => ['profile_image' => $target_file]]);
     }
 }
 
 header("Location: dashboard.php");
 exit();
+
