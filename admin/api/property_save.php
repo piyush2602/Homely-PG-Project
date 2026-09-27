@@ -23,6 +23,10 @@ $rating_safety = isset($_POST['rating_safety']) ? (float)$_POST['rating_safety']
 
 $selected_amenities = isset($_POST['amenities']) ? (array)$_POST['amenities'] : [];
 
+// Optional tenant review / feedback fields
+$reviewer_name  = isset($_POST['reviewer_name']) ? trim($_POST['reviewer_name']) : '';
+$feedback_text  = isset($_POST['feedback_text']) ? trim($_POST['feedback_text']) : '';
+
 if (empty($name) || empty($address) || $rent <= 0) {
     echo json_encode(['success' => false, 'message' => 'Please provide property name, address, and valid rent.']);
     exit();
@@ -84,6 +88,26 @@ if (!empty($_FILES['image']['name'])) {
     }
     $target_file = $target_dir . "1.jpg";
     move_uploaded_file($_FILES['image']['tmp_name'], $target_file);
+}
+
+// Save or Update Optional Testimonial / Feedback
+if (!empty($reviewer_name) || !empty($feedback_text)) {
+    $existing_t = $db->testimonials->findOne(['property_id' => $property_id]);
+    if ($existing_t) {
+        $db->testimonials->updateOne(
+            ['property_id' => $property_id],
+            ['$set' => ['user_name' => $reviewer_name, 'content' => $feedback_text]]
+        );
+    } else {
+        $t_max = $db->testimonials->findOne([], ['sort' => ['id' => -1]]);
+        $t_id = ($t_max && isset($t_max['id'])) ? (int)$t_max['id'] + 1 : 1;
+        $db->testimonials->insertOne([
+            'id'          => $t_id,
+            'property_id' => $property_id,
+            'user_name'   => $reviewer_name,
+            'content'     => $feedback_text
+        ]);
+    }
 }
 
 echo json_encode(['success' => true, 'message' => 'Property saved successfully!']);
