@@ -14,11 +14,20 @@ if (empty($email) || empty($password)) {
 
 $hashedPassword = sha1($password);
 
-// 1. Check in MongoDB users collection for role === 'admin'
+// 1. Check in MongoDB users collection for matching email & password
 $user = $db->users->findOne([
     'email' => $email,
-    'password' => $hashedPassword
+    'password' => $hashedPassword,
+    'role' => 'admin'
 ]);
+
+if (!$user) {
+    // Fallback search by email and password if role field was omitted
+    $user = $db->users->findOne([
+        'email' => $email,
+        'password' => $hashedPassword
+    ]);
+}
 
 if ($user && (!empty($user['role']) && $user['role'] === 'admin')) {
     $_SESSION['is_admin'] = true;
@@ -30,8 +39,9 @@ if ($user && (!empty($user['role']) && $user['role'] === 'admin')) {
     exit();
 }
 
-// 2. Default fallback check for admin@gmail.com / admin123 if unseeded
-if ($email === 'admin@gmail.com' && $password === 'admin123') {
+// 2. Initial setup fallback ONLY if database has no admin users seeded yet
+$admin_count = $db->users->countDocuments(['role' => 'admin']);
+if ($admin_count === 0 && $email === 'admin@gmail.com' && $password === 'admin123') {
     $_SESSION['is_admin'] = true;
     $_SESSION['admin_id'] = 999;
     $_SESSION['admin_email'] = 'admin@gmail.com';
