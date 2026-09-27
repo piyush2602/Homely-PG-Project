@@ -2,11 +2,24 @@
 require_once __DIR__ . '/includes/admin_header.php';
 require_once __DIR__ . '/../includes/mongodb_connect.php';
 
-$properties = $db->properties->find([], ['sort' => ['id' => -1]])->toArray();
-$cities = $db->cities->find()->toArray();
+try {
+    $properties = $db->properties->find([], ['sort' => ['_id' => -1]])->toArray();
+} catch (Exception $e) {
+    $properties = [];
+}
+
+try {
+    $cities = $db->cities->find()->toArray();
+} catch (Exception $e) {
+    $cities = [];
+}
+
 $cities_by_id = [];
 foreach ($cities as $c) {
-    $cities_by_id[$c['id']] = $c['name'];
+    if (isset($c['id'])) {
+        $cities_by_id[(string)$c['id']] = $c['name'] ?? '';
+        $cities_by_id[(int)$c['id']] = $c['name'] ?? '';
+    }
 }
 ?>
 
@@ -38,24 +51,29 @@ foreach ($cities as $c) {
             <?php else: ?>
                 <?php foreach ($properties as $p): ?>
                     <?php 
-                    $city_name = $cities_by_id[$p['city_id']] ?? 'Unknown'; 
-                    $avg_rating = round((($p['rating_clean'] ?? 0) + ($p['rating_food'] ?? 0) + ($p['rating_safety'] ?? 0)) / 3, 1);
+                    $cid = $p['city_id'] ?? null;
+                    $city_name = ($cid !== null && isset($cities_by_id[$cid])) ? $cities_by_id[$cid] : 'Unknown'; 
+                    $rating_clean = (float)($p['rating_clean'] ?? 0);
+                    $rating_food = (float)($p['rating_food'] ?? 0);
+                    $rating_safety = (float)($p['rating_safety'] ?? 0);
+                    $avg_rating = round(($rating_clean + $rating_food + $rating_safety) / 3, 1);
+                    $prop_id = $p['id'] ?? (string)($p['_id'] ?? 0);
                     ?>
-                    <tr id="prop-row-<?= $p['id'] ?>">
-                        <td><strong>#<?= $p['id'] ?></strong></td>
+                    <tr id="prop-row-<?= $prop_id ?>">
+                        <td><strong>#<?= htmlspecialchars($prop_id) ?></strong></td>
                         <td>
                             <div class="font-weight-bold text-dark"><?= htmlspecialchars($p['name'] ?? '') ?></div>
                             <div class="small text-muted"><?= htmlspecialchars(substr($p['address'] ?? '', 0, 45)) ?>...</div>
                         </td>
                         <td><span class="badge badge-info"><?= htmlspecialchars($city_name) ?></span></td>
-                        <td><strong class="text-success">₹<?= number_format($p['rent'] ?? 0) ?></strong> /mo</td>
+                        <td><strong class="text-success">₹<?= number_format((float)($p['rent'] ?? 0)) ?></strong> /mo</td>
                         <td><span class="badge badge-dark text-capitalize"><?= htmlspecialchars($p['gender'] ?? 'unisex') ?></span></td>
                         <td><span class="text-warning">★ <?= $avg_rating ?></span></td>
                         <td>
-                            <a href="property_edit.php?id=<?= $p['id'] ?>" class="btn-admin-edit">
+                            <a href="property_edit.php?id=<?= $prop_id ?>" class="btn-admin-edit">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
-                            <button onclick="deleteProperty(<?= $p['id'] ?>)" class="btn-admin-danger">
+                            <button onclick="deleteProperty(<?= $prop_id ?>)" class="btn-admin-danger">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </td>
