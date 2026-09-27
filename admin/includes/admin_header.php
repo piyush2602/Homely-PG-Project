@@ -53,6 +53,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </li>
 
             <li>
+                <a href="change_password.php" class="<?= $current_page === 'change_password.php' ? 'active' : '' ?>">
+                    <i class="fas fa-key"></i> Change Password
+                </a>
+            </li>
+            <li>
                 <a href="../index.php" target="_blank">
                     <i class="fas fa-globe"></i> View Website
                 </a>
@@ -74,6 +79,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 elseif (in_array($current_page, ['properties.php', 'property_add.php', 'property_edit.php'])) echo 'PG / Hotel Management';
                 elseif ($current_page === 'users.php') echo 'Registered Users';
                 elseif ($current_page === 'chat.php') echo 'Live Admin Support Chat';
+                elseif ($current_page === 'change_password.php') echo 'Change Admin Password';
                 else echo 'Admin Portal';
                 ?>
             </h2>
